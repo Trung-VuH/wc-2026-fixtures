@@ -630,6 +630,19 @@ while (i < lines.length) {
             translated = translated.replace(/3rd Group (.*)/g, 'Hạng 3 bảng $1');
             translated = translated.replace(/Winner Match (\d+)/g, 'Thắng trận $1');
             translated = translated.replace(/Loser Match (\d+)/g, 'Thua trận $1');
+            
+            const unknownPaths = [
+                'UEFA Path D winner',
+                'UEFA Path A winner',
+                'UEFA Path C winner',
+                'UEFA Path B winner',
+                'IC Path 2 winner',
+                'IC Path 1 winner'
+            ];
+            if (unknownPaths.includes(translated)) {
+                return 'Chưa xác định';
+            }
+            
             return translated;
         };
 
@@ -665,7 +678,7 @@ while (i < lines.length) {
                 if (timeHcm === '23:00') {
                     // Do not apply fix for specific matches
                     const isSpainVsCapeVerde = home === 'Spain' && away === 'Cape Verde';
-                    const isUefaVsSouthAfrica = home === 'UEFA Path D winner' && away === 'South Africa';
+                    const isUefaVsSouthAfrica = home === 'Chưa xác định' && away === 'South Africa';
                     const isSpainVsSaudiArabia = home === 'Spain' && away === 'Saudi Arabia';
                     const isGroupLVsThird = home === 'Nhất bảng L' && away === 'Hạng 3 bảng E/H/I/J/K';
                     const isMatch86Vs88 = home === 'Thắng trận 86' && away === 'Thắng trận 88';

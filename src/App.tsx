@@ -133,28 +133,6 @@ export default function App() {
 
         {/* Sidebar - Hidden on mobile */}
         <aside className="hidden lg:block w-[300px] shrink-0 space-y-6">
-          <div className="bg-[#f7f7f7] p-5 rounded border border-[#e5e5e5]">
-            <h3 className="font-bold text-[18px] mb-4 border-b border-[#e5e5e5] pb-3 text-[#222]">Thông tin giải đấu</h3>
-            <ul className="space-y-3 text-[14px] text-[#4f4f4f]">
-              <li className="flex items-start">
-                <span className="w-1.5 h-1.5 bg-[#9f224e] rounded-full mt-2 mr-3 shrink-0"></span>
-                <span><strong>Chủ nhà:</strong> Canada, Mexico, Hoa Kỳ</span>
-              </li>
-              <li className="flex items-start">
-                <span className="w-1.5 h-1.5 bg-[#9f224e] rounded-full mt-2 mr-3 shrink-0"></span>
-                <span><strong>Thời gian:</strong> 11/06 - 19/07/2026</span>
-              </li>
-              <li className="flex items-start">
-                <span className="w-1.5 h-1.5 bg-[#9f224e] rounded-full mt-2 mr-3 shrink-0"></span>
-                <span><strong>Số đội:</strong> 48 đội</span>
-              </li>
-              <li className="flex items-start">
-                <span className="w-1.5 h-1.5 bg-[#9f224e] rounded-full mt-2 mr-3 shrink-0"></span>
-                <span><strong>Số trận:</strong> 104 trận</span>
-              </li>
-            </ul>
-          </div>
-          
           <div className="bg-[#f2f2f2] h-[600px] flex items-center justify-center text-[#757575] text-sm rounded border border-[#e5e5e5]">
             Quảng cáo
           </div>
