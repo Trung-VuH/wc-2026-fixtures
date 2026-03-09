@@ -239,52 +239,39 @@ export default function App() {
                   </div>
                   <div className="divide-y divide-[#e5e5e5]">
                     {groupedMatches[key].map(match => (
-                      <div key={match.id} className="p-4 hover:bg-[#f9f9f9] transition-colors">
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                          
-                          {/* Time & Location - Top on Mobile, Right on PC */}
-                          <div className="md:col-span-5 flex flex-col md:items-end space-y-1 order-1 md:order-2">
-                            <div className="flex items-center text-[#9f224e] font-bold text-[15px]">
-                              <Clock className="w-4 h-4 mr-2 md:hidden" />
-                              {match.datetimeHcm ? match.datetimeHcm.split(' - ')[0] : 'Chưa xác định'}
-                              {viewMode === 'group' && match.datetimeHcm && (
-                                <span className="ml-2 text-[13px] font-normal text-[#757575]">
-                                  ({match.datetimeHcm.split(' - ')[1]})
-                                </span>
-                              )}
-                              <Clock className="w-4 h-4 ml-2 hidden md:block" />
-                            </div>
-                            <div className="flex items-center text-[#757575] text-[13px]">
-                              <MapPin className="w-[14px] h-[14px] mr-1 md:hidden" />
-                              <span className="md:text-right">{match.location}</span>
-                              <MapPin className="w-[14px] h-[14px] ml-1 hidden md:block" />
-                            </div>
-                            <div className="text-[13px] text-[#757575] mt-1 flex items-center md:justify-end gap-2">
-                              {viewMode === 'date' && (
-                                <>
-                                  <span className="font-semibold text-[#444]">{match.group}</span>
-                                  <span className="text-[#ccc]">|</span>
-                                </>
-                              )}
-                              <span>{match.matchNum}</span>
-                            </div>
+                      <div key={match.id} className="p-4 hover:bg-[#f9f9f9] transition-colors flex flex-col items-center justify-center">
+                        {/* Teams and Time */}
+                        <div className="flex items-center justify-center gap-3 w-full mb-2">
+                          <div className="flex-1 flex items-center justify-end gap-2 text-right font-normal md:font-medium text-[15px] md:text-[16px] text-[#222]">
+                            <span className="line-clamp-2 md:truncate">{getTeamInfo(match.home).name}</span>
+                            <img src={getTeamInfo(match.home).flag} alt={match.home} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
                           </div>
-
-                          {/* Teams - Bottom on Mobile, Left on PC */}
-                          <div className="md:col-span-7 flex items-center justify-center md:justify-start gap-3 order-2 md:order-1">
-                            <div className="flex-1 flex items-center justify-end gap-2 text-right font-bold text-[16px] text-[#222]">
-                              <span className="line-clamp-2 md:truncate">{getTeamInfo(match.home).name}</span>
-                              <img src={getTeamInfo(match.home).flag} alt={match.home} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
-                            </div>
-                            <div className="px-2 py-1 bg-[#f2f2f2] rounded text-[12px] font-bold text-[#757575] shrink-0 w-[40px] text-center">
-                              VS
-                            </div>
-                            <div className="flex-1 flex items-center justify-start gap-2 text-left font-bold text-[16px] text-[#222]">
-                              <img src={getTeamInfo(match.away).flag} alt={match.away} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
-                              <span className="line-clamp-2 md:truncate">{getTeamInfo(match.away).name}</span>
-                            </div>
+                          <div className="text-[18px] md:text-[20px] font-normal text-[#222] shrink-0 w-[60px] text-center">
+                            {match.datetimeHcm ? match.datetimeHcm.split(' - ')[0] : '??:??'}
                           </div>
-
+                          <div className="flex-1 flex items-center justify-start gap-2 text-left font-normal md:font-medium text-[15px] md:text-[16px] text-[#222]">
+                            <img src={getTeamInfo(match.away).flag} alt={match.away} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
+                            <span className="line-clamp-2 md:truncate">{getTeamInfo(match.away).name}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Match Info */}
+                        <div className="text-[12px] md:text-[13px] text-[#757575] flex items-center justify-center gap-1.5 md:gap-2 flex-wrap text-center">
+                          <span>{match.matchNum}</span>
+                          <span className="text-[#ccc]">•</span>
+                          {viewMode === 'date' && (
+                            <>
+                              <span>{match.group}</span>
+                              <span className="text-[#ccc]">•</span>
+                            </>
+                          )}
+                          <span>{match.location}</span>
+                          {viewMode === 'group' && match.datetimeHcm && (
+                            <>
+                              <span className="text-[#ccc]">•</span>
+                              <span>{match.datetimeHcm.split(' - ')[1]}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
