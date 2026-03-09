@@ -37,7 +37,23 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const allTeams = Object.keys(teamInfo).filter(t => t !== 'Chưa xác định').sort((a, b) => teamInfo[a].name.localeCompare(teamInfo[b].name));
+  const topTeams = [
+    'Spain', 'Argentina', 'France', 'England', 'Brazil', 'Portugal', 
+    'Netherlands', 'Belgium', 'Germany', 'Uruguay', 'Japan', 'South Korea'
+  ];
+
+  const allTeams = Object.keys(teamInfo)
+    .filter(t => t !== 'Chưa xác định')
+    .sort((a, b) => {
+      const indexA = topTeams.indexOf(a);
+      const indexB = topTeams.indexOf(b);
+      
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return teamInfo[a].name.localeCompare(teamInfo[b].name);
+    });
 
   const toggleTeam = (team: string) => {
     setFavoriteTeams(prev => 
@@ -147,76 +163,74 @@ export default function App() {
               </button>
             </div>
 
-            {/* Favorite Teams Selector - Only visible in 'date' view */}
-            {viewMode === 'date' && (
-              <div className="relative" ref={dropdownRef}>
-                <h3 className="font-bold text-[#222] mb-3">Chọn đội bóng yêu thích:</h3>
+            {/* Favorite Teams Selector */}
+            <div className="relative" ref={dropdownRef}>
+              <h3 className="font-bold text-[#222] mb-3">Chọn đội bóng yêu thích:</h3>
+              
+              {favoriteTeams.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {favoriteTeams.map(team => (
+                    <span key={team} className="inline-flex items-center gap-1 px-3 py-1 bg-[#fdf2f5] text-[#9f224e] rounded-full text-sm font-medium border border-[#f5d0dc]">
+                      <img src={getTeamInfo(team).flag} alt={team} className="w-4 h-3 object-cover border border-gray-200" referrerPolicy="no-referrer" />
+                      {getTeamInfo(team).name}
+                      <button onClick={() => toggleTeam(team)} className="hover:text-red-700 ml-1 focus:outline-none"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                  <button 
+                    onClick={() => setFavoriteTeams([])}
+                    className="text-sm text-gray-500 hover:text-gray-700 underline ml-2"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              )}
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 border border-[#e5e5e5] rounded bg-white text-left text-sm hover:border-gray-400 transition-colors"
+                >
+                  <span className="text-gray-500">Thêm đội bóng...</span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </button>
                 
-                {favoriteTeams.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {favoriteTeams.map(team => (
-                      <span key={team} className="inline-flex items-center gap-1 px-3 py-1 bg-[#fdf2f5] text-[#9f224e] rounded-full text-sm font-medium border border-[#f5d0dc]">
-                        <img src={getTeamInfo(team).flag} alt={team} className="w-4 h-3 object-cover border border-gray-200" referrerPolicy="no-referrer" />
-                        {getTeamInfo(team).name}
-                        <button onClick={() => toggleTeam(team)} className="hover:text-red-700 ml-1 focus:outline-none"><X className="w-3 h-3" /></button>
-                      </span>
-                    ))}
-                    <button 
-                      onClick={() => setFavoriteTeams([])}
-                      className="text-sm text-gray-500 hover:text-gray-700 underline ml-2"
-                    >
-                      Xóa tất cả
-                    </button>
+                {isDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] rounded shadow-lg max-h-[300px] flex flex-col">
+                    <div className="p-2 border-b border-[#e5e5e5]">
+                      <input 
+                        type="text" 
+                        placeholder="Tìm kiếm đội bóng..." 
+                        className="w-full px-3 py-2 border border-[#e5e5e5] rounded text-sm focus:outline-none focus:border-[#9f224e]"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <div className="p-1 overflow-y-auto flex-1">
+                      {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).map(team => (
+                        <label key={team} className="flex items-center px-3 py-2.5 hover:bg-[#f9f9f9] cursor-pointer rounded">
+                          <div className="relative flex items-center justify-center w-4 h-4 mr-3 border border-gray-300 rounded bg-white">
+                            <input 
+                              type="checkbox" 
+                              className="appearance-none w-full h-full cursor-pointer"
+                              checked={favoriteTeams.includes(team)}
+                              onChange={() => toggleTeam(team)}
+                            />
+                            {favoriteTeams.includes(team) && <Check className="w-3 h-3 text-[#9f224e] absolute pointer-events-none" />}
+                          </div>
+                          <img src={getTeamInfo(team).flag} alt={team} className="w-5 h-3.5 object-cover mr-2 border border-gray-200" referrerPolicy="no-referrer" />
+                          <span className="text-sm text-[#222]">{getTeamInfo(team).name}</span>
+                        </label>
+                      ))}
+                      {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                        <div className="p-4 text-center text-sm text-gray-500">
+                          Không tìm thấy đội bóng nào
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                
-                <div className="relative">
-                  <button 
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 border border-[#e5e5e5] rounded bg-white text-left text-sm hover:border-gray-400 transition-colors"
-                  >
-                    <span className="text-gray-500">Thêm đội bóng...</span>
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  </button>
-                  
-                  {isDropdownOpen && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] rounded shadow-lg max-h-[300px] flex flex-col">
-                      <div className="p-2 border-b border-[#e5e5e5]">
-                        <input 
-                          type="text" 
-                          placeholder="Tìm kiếm đội bóng..." 
-                          className="w-full px-3 py-2 border border-[#e5e5e5] rounded text-sm focus:outline-none focus:border-[#9f224e]"
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                      <div className="p-1 overflow-y-auto flex-1">
-                        {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).map(team => (
-                          <label key={team} className="flex items-center px-3 py-2.5 hover:bg-[#f9f9f9] cursor-pointer rounded">
-                            <div className="relative flex items-center justify-center w-4 h-4 mr-3 border border-gray-300 rounded bg-white">
-                              <input 
-                                type="checkbox" 
-                                className="appearance-none w-full h-full cursor-pointer"
-                                checked={favoriteTeams.includes(team)}
-                                onChange={() => toggleTeam(team)}
-                              />
-                              {favoriteTeams.includes(team) && <Check className="w-3 h-3 text-[#9f224e] absolute pointer-events-none" />}
-                            </div>
-                            <img src={getTeamInfo(team).flag} alt={team} className="w-5 h-3.5 object-cover mr-2 border border-gray-200" referrerPolicy="no-referrer" />
-                            <span className="text-sm text-[#222]">{getTeamInfo(team).name}</span>
-                          </label>
-                        ))}
-                        {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                          <div className="p-4 text-center text-sm text-gray-500">
-                            Không tìm thấy đội bóng nào
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
-            )}
+            </div>
           </div>
 
           {loading ? (
