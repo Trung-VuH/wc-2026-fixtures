@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { fetchMatches, Match } from './services/wikiService';
-import { Clock, MapPin } from 'lucide-react';
+import { Clock, MapPin, ChevronDown, X, Check } from 'lucide-react';
 import { teamInfo } from './data/teams';
 
 const getTeamInfo = (teamName: string) => {
@@ -10,6 +10,11 @@ const getTeamInfo = (teamName: string) => {
 export default function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [favoriteTeams, setFavoriteTeams] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'date' | 'group'>('date');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMatches()
@@ -22,29 +27,83 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Sort matches by timestamp and group by date
-  const sortedMatches = [...matches].sort((a, b) => {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const allTeams = Object.keys(teamInfo).filter(t => t !== 'Chưa xác định').sort((a, b) => teamInfo[a].name.localeCompare(teamInfo[b].name));
+
+  const toggleTeam = (team: string) => {
+    setFavoriteTeams(prev => 
+      prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
+    );
+  };
+
+  const filteredMatches = matches.filter(match => {
+    if (favoriteTeams.length === 0) return true;
+    return favoriteTeams.includes(match.home) || favoriteTeams.includes(match.away);
+  });
+
+  const sortedMatches = [...filteredMatches].sort((a, b) => {
     if (a.timestamp && b.timestamp) return a.timestamp - b.timestamp;
     return 0;
   });
 
   const groupedMatches = sortedMatches.reduce((acc, match) => {
-    // Extract date from datetimeHcm (format: "HH:mm - dd/MM/yyyy")
-    // If datetimeHcm is empty, fallback to dateStr
-    let dateKey = 'Chưa xác định';
-    if (match.datetimeHcm) {
-      const parts = match.datetimeHcm.split(' - ');
-      if (parts.length === 2) {
-        dateKey = parts[1];
+    if (viewMode === 'date') {
+      let dateKey = 'Chưa xác định';
+      if (match.datetimeHcm) {
+        const parts = match.datetimeHcm.split(' - ');
+        if (parts.length === 2) {
+          dateKey = parts[1];
+        }
+      } else if (match.dateStr) {
+        dateKey = match.dateStr;
       }
-    } else if (match.dateStr) {
-      dateKey = match.dateStr;
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(match);
+    } else {
+      const groupKey = match.group || 'Chưa xác định';
+      if (!acc[groupKey]) acc[groupKey] = [];
+      acc[groupKey].push(match);
     }
-    
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(match);
     return acc;
   }, {} as Record<string, Match[]>);
+
+  let sortedKeys = Object.keys(groupedMatches);
+  if (viewMode === 'date') {
+    sortedKeys.sort((a, b) => {
+      const timeA = groupedMatches[a][0].timestamp || 0;
+      const timeB = groupedMatches[b][0].timestamp || 0;
+      return timeA - timeB;
+    });
+  } else {
+    const groupOrder = [
+      'Bảng A', 'Bảng B', 'Bảng C', 'Bảng D', 'Bảng E', 'Bảng F',
+      'Bảng G', 'Bảng H', 'Bảng I', 'Bảng J', 'Bảng K', 'Bảng L',
+      'Vòng 1/16', 'Vòng 1/8', 'Tứ kết', 'Bán kết', 'Tranh hạng 3', 'Chung kết'
+    ];
+    sortedKeys.sort((a, b) => {
+      const indexA = groupOrder.indexOf(a);
+      const indexB = groupOrder.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }
+
+  if (viewMode === 'group') {
+    for (const key of sortedKeys) {
+      groupedMatches[key].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#222]">
@@ -70,54 +129,159 @@ export default function App() {
             </p>
           </div>
 
+          {/* Filters */}
+          <div className="mb-8 space-y-6">
+            {/* View Mode Toggle */}
+            <div className="flex bg-[#f2f2f2] p-1 rounded inline-flex">
+              <button 
+                onClick={() => setViewMode('date')}
+                className={`px-5 py-2 rounded text-sm font-bold transition-colors ${viewMode === 'date' ? 'bg-white text-[#9f224e] shadow-sm' : 'text-[#757575] hover:text-[#222]'}`}
+              >
+                Xem theo ngày
+              </button>
+              <button 
+                onClick={() => setViewMode('group')}
+                className={`px-5 py-2 rounded text-sm font-bold transition-colors ${viewMode === 'group' ? 'bg-white text-[#9f224e] shadow-sm' : 'text-[#757575] hover:text-[#222]'}`}
+              >
+                Xem theo bảng
+              </button>
+            </div>
+
+            {/* Favorite Teams Selector - Only visible in 'date' view */}
+            {viewMode === 'date' && (
+              <div className="relative" ref={dropdownRef}>
+                <h3 className="font-bold text-[#222] mb-3">Chọn đội bóng yêu thích:</h3>
+                
+                {favoriteTeams.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {favoriteTeams.map(team => (
+                      <span key={team} className="inline-flex items-center gap-1 px-3 py-1 bg-[#fdf2f5] text-[#9f224e] rounded-full text-sm font-medium border border-[#f5d0dc]">
+                        <img src={getTeamInfo(team).flag} alt={team} className="w-4 h-3 object-cover border border-gray-200" referrerPolicy="no-referrer" />
+                        {getTeamInfo(team).name}
+                        <button onClick={() => toggleTeam(team)} className="hover:text-red-700 ml-1 focus:outline-none"><X className="w-3 h-3" /></button>
+                      </span>
+                    ))}
+                    <button 
+                      onClick={() => setFavoriteTeams([])}
+                      className="text-sm text-gray-500 hover:text-gray-700 underline ml-2"
+                    >
+                      Xóa tất cả
+                    </button>
+                  </div>
+                )}
+                
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 border border-[#e5e5e5] rounded bg-white text-left text-sm hover:border-gray-400 transition-colors"
+                  >
+                    <span className="text-gray-500">Thêm đội bóng...</span>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </button>
+                  
+                  {isDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-[#e5e5e5] rounded shadow-lg max-h-[300px] flex flex-col">
+                      <div className="p-2 border-b border-[#e5e5e5]">
+                        <input 
+                          type="text" 
+                          placeholder="Tìm kiếm đội bóng..." 
+                          className="w-full px-3 py-2 border border-[#e5e5e5] rounded text-sm focus:outline-none focus:border-[#9f224e]"
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <div className="p-1 overflow-y-auto flex-1">
+                        {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).map(team => (
+                          <label key={team} className="flex items-center px-3 py-2.5 hover:bg-[#f9f9f9] cursor-pointer rounded">
+                            <div className="relative flex items-center justify-center w-4 h-4 mr-3 border border-gray-300 rounded bg-white">
+                              <input 
+                                type="checkbox" 
+                                className="appearance-none w-full h-full cursor-pointer"
+                                checked={favoriteTeams.includes(team)}
+                                onChange={() => toggleTeam(team)}
+                              />
+                              {favoriteTeams.includes(team) && <Check className="w-3 h-3 text-[#9f224e] absolute pointer-events-none" />}
+                            </div>
+                            <img src={getTeamInfo(team).flag} alt={team} className="w-5 h-3.5 object-cover mr-2 border border-gray-200" referrerPolicy="no-referrer" />
+                            <span className="text-sm text-[#222]">{getTeamInfo(team).name}</span>
+                          </label>
+                        ))}
+                        {allTeams.filter(t => teamInfo[t].name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                          <div className="p-4 text-center text-sm text-gray-500">
+                            Không tìm thấy đội bóng nào
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {loading ? (
             <div className="py-20 text-center text-gray-500">
               <div className="animate-spin w-8 h-8 border-4 border-[#9f224e] border-t-transparent rounded-full mx-auto mb-4"></div>
               Đang tải dữ liệu...
             </div>
+          ) : sortedKeys.length === 0 ? (
+            <div className="py-20 text-center text-gray-500 border border-[#e5e5e5] rounded bg-[#f9f9f9]">
+              Không có trận đấu nào phù hợp với lựa chọn của bạn.
+            </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedMatches).map(([date, dateMatches]) => (
-                <div key={date} className="border border-[#e5e5e5] rounded overflow-hidden">
+              {sortedKeys.map((key) => (
+                <div key={key} className="border border-[#e5e5e5] rounded overflow-hidden">
                   <div className="bg-[#f7f7f7] px-4 py-3 border-b border-[#e5e5e5]">
                     <h2 className="text-[16px] font-bold text-[#9f224e] uppercase">
-                      {date.includes('/') ? `Ngày ${date}` : date}
+                      {viewMode === 'date' ? (key.includes('/') ? `Ngày ${key}` : key) : key}
                     </h2>
                   </div>
                   <div className="divide-y divide-[#e5e5e5]">
-                    {dateMatches.map(match => (
+                    {groupedMatches[key].map(match => (
                       <div key={match.id} className="p-4 hover:bg-[#f9f9f9] transition-colors">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                           
-                          {/* Time & Location */}
-                          <div className="flex-1 space-y-1">
+                          {/* Time & Location - Top on Mobile, Right on PC */}
+                          <div className="md:col-span-5 flex flex-col md:items-end space-y-1 order-1 md:order-2">
                             <div className="flex items-center text-[#9f224e] font-bold text-[15px]">
-                              <Clock className="w-4 h-4 mr-2" />
+                              <Clock className="w-4 h-4 mr-2 md:hidden" />
                               {match.datetimeHcm ? match.datetimeHcm.split(' - ')[0] : 'Chưa xác định'}
+                              {viewMode === 'group' && match.datetimeHcm && (
+                                <span className="ml-2 text-[13px] font-normal text-[#757575]">
+                                  ({match.datetimeHcm.split(' - ')[1]})
+                                </span>
+                              )}
+                              <Clock className="w-4 h-4 ml-2 hidden md:block" />
                             </div>
                             <div className="flex items-center text-[#757575] text-[13px]">
-                              <MapPin className="w-[14px] h-[14px] mr-1" />
-                              {match.location}
+                              <MapPin className="w-[14px] h-[14px] mr-1 md:hidden" />
+                              <span className="md:text-right">{match.location}</span>
+                              <MapPin className="w-[14px] h-[14px] ml-1 hidden md:block" />
                             </div>
-                            <div className="text-[13px] text-[#757575] mt-1 flex items-center gap-2">
-                              <span className="font-semibold text-[#444]">{match.group}</span>
-                              <span className="text-[#ccc]">|</span>
+                            <div className="text-[13px] text-[#757575] mt-1 flex items-center md:justify-end gap-2">
+                              {viewMode === 'date' && (
+                                <>
+                                  <span className="font-semibold text-[#444]">{match.group}</span>
+                                  <span className="text-[#ccc]">|</span>
+                                </>
+                              )}
                               <span>{match.matchNum}</span>
                             </div>
                           </div>
 
-                          {/* Teams */}
-                          <div className="flex-[1.5] flex items-center justify-center gap-4">
+                          {/* Teams - Bottom on Mobile, Left on PC */}
+                          <div className="md:col-span-7 flex items-center justify-center md:justify-start gap-3 order-2 md:order-1">
                             <div className="flex-1 flex items-center justify-end gap-2 text-right font-bold text-[16px] text-[#222]">
-                              <span>{getTeamInfo(match.home).name}</span>
-                              <img src={getTeamInfo(match.home).flag} alt={match.home} className="w-6 h-4 object-cover border border-gray-200" referrerPolicy="no-referrer" />
+                              <span className="line-clamp-2 md:truncate">{getTeamInfo(match.home).name}</span>
+                              <img src={getTeamInfo(match.home).flag} alt={match.home} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
                             </div>
-                            <div className="px-3 py-1 bg-[#f2f2f2] rounded text-[13px] font-bold text-[#757575]">
+                            <div className="px-2 py-1 bg-[#f2f2f2] rounded text-[12px] font-bold text-[#757575] shrink-0 w-[40px] text-center">
                               VS
                             </div>
                             <div className="flex-1 flex items-center justify-start gap-2 text-left font-bold text-[16px] text-[#222]">
-                              <img src={getTeamInfo(match.away).flag} alt={match.away} className="w-6 h-4 object-cover border border-gray-200" referrerPolicy="no-referrer" />
-                              <span>{getTeamInfo(match.away).name}</span>
+                              <img src={getTeamInfo(match.away).flag} alt={match.away} className="w-6 h-4 object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
+                              <span className="line-clamp-2 md:truncate">{getTeamInfo(match.away).name}</span>
                             </div>
                           </div>
 
